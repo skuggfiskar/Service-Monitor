@@ -10,6 +10,7 @@ class ServiceMonitorApp:
 
         self.profile_manager = ProfileManager()
         self.services = []
+        self.current_profile = None
 
         self.create_widgets()
 
@@ -30,10 +31,15 @@ class ServiceMonitorApp:
         self.status_button = ttk.Button(self.root, text="Check Status", command=self.check_status)
         self.status_button.pack()
 
+        self.save_button = ttk.Button(self.root, text="Save Profile", command=self.save_profile)
+        self.save_button.pack()
+
     def load_profile(self, event):
         profile_name = self.profile_combo.get()
+        self.current_profile = profile_name
         profile_data = self.profile_manager.load_profile(profile_name)
         self.services = [create_service(data) for data in profile_data]
+        messagebox.showinfo("Profile Loaded", f"Loaded profile: {profile_name}")
 
     def add_service(self):
         AddServiceDialog(self)
@@ -42,6 +48,32 @@ class ServiceMonitorApp:
         for service in self.services:
             status = service.check_status()
             messagebox.showinfo("Service Status", f"{service.name}: {status}")
+
+    def save_profile(self):
+        if not self.current_profile:
+            profile_name = self.profile_combo.get()
+            if not profile_name:
+                messagebox.showerror("Error", "No profile selected to save.")
+                return
+            # New profile
+            self.current_profile = profile_name
+
+        profile_data = []
+        for service in self.services:
+            data = {
+                'Name': service.name,
+                'Type': service.service_type,
+                'Host': service.host
+            }
+            if service.service_type == 'MongoDB':
+                data['DB'] = service.db
+            elif service.service_type == 'WebApp':
+                data['Healthcheck'] = service.healthcheck
+                data['Response'] = service.response_type
+            profile_data.append(data)
+
+        self.profile_manager.save_profile(self.current_profile, profile_data)
+        messagebox.showinfo("Profile Saved", f"Profile {self.current_profile} saved successfully!")
 
 class AddServiceDialog:
     def __init__(self, parent):
