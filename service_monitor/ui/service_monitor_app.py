@@ -56,7 +56,7 @@ class ServiceMonitorApp:
         self.current_profile = profile_name
         profile_data = self.profile_manager.load_profile(profile_name)
         self.services = [create_service(data) for data in profile_data]
-        messagebox.showinfo("Profile Loaded", f"Loaded profile: {profile_name}")
+        # messagebox.showinfo("Profile Loaded", f"Loaded profile: {profile_name}")
 
     def add_service(self):
         AddServiceDialog(self, self.settings_manager)
@@ -75,7 +75,8 @@ class ServiceMonitorApp:
             data = {
                 'Name': service.name,
                 'Type': service.service_type,
-                'Host': service.host
+                'Host': service.host,
+                'Interval': service.interval
             }
             if service.service_type == 'MongoDB':
                 data['DB'] = service.db
@@ -85,7 +86,7 @@ class ServiceMonitorApp:
             profile_data.append(data)
 
         self.profile_manager.save_profile(self.current_profile, profile_data)
-        messagebox.showinfo("Profile Saved", f"Profile {self.current_profile} saved successfully!")
+        # messagebox.showinfo("Profile Saved", f"Profile {self.current_profile} saved successfully!")
 
     def open_dashboard(self):
         if self.dashboard is None or not self.dashboard.root.winfo_exists():

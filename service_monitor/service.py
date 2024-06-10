@@ -68,9 +68,10 @@ class WebAppService(Service):
             return f"Offline: {e}"
 
 def create_service(service_data):
+    interval = service_data.get('Interval', 10)  # Default interval is 10 seconds
     if service_data['Type'] == 'MongoDB':
-        return MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'])
+        return MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'], interval)
     elif service_data['Type'] == 'WebApp':
-        return WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'])
+        return WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval)
     else:
         raise ValueError("Unsupported service type")

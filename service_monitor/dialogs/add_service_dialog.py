@@ -81,7 +81,8 @@ class AddServiceDialog:
         service_data = {
             'Name': self.name_entry.get(),
             'Type': self.type_combo.get(),
-            'Host': self.host_entry.get()
+            'Host': self.host_entry.get(),
+            'Interval': interval
         }
         if service_data['Type'] == "MongoDB":
             service_data['DB'] = self.db_entry.get()
@@ -96,7 +97,6 @@ class AddServiceDialog:
             service = WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval)
 
         self.parent.services.append(service)
-        service.start()
         self.top.destroy()
 
     def restore_window_position(self, window_name):

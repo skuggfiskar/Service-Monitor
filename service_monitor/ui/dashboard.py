@@ -35,6 +35,9 @@ class Dashboard:
 
     def update_status(self):
         for service in self.services:
+            if service.name not in self.service_status_labels:
+                self.add_service_widget(service)
+
             status_label = self.service_status_labels[service.name]
             status_label.config(text=service.status, foreground="green" if service.status == "Online" else "red")
 
