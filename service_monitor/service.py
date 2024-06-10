@@ -25,24 +25,29 @@ class MongoDBService(Service):
             return "Offline"
 
 class WebAppService(Service):
-    def __init__(self, name, host, healthcheck, response_type):
+    def __init__(self, name, host, healthcheck, response):
         super().__init__(name, 'WebApp', host)
         self.healthcheck = healthcheck
-        self.response_type = response_type
+        self.response = response
 
     def check_status(self):
         try:
             url = f"{self.host}{self.healthcheck}"
             response = requests.get(url)
-            if self.response_type == "JSON":
-                response.json()
-            elif self.response_type == "TEXT":
-                response.text
-            return "Online" if response.status_code == 200 else "Offline"
+            if self.response['ExpectedStatusCode'] != None and response.status_code != self.response['ExpectedStatusCode']: # todo allow any
+                return f"Offline: Expected {self.response['ExpectedStatusCode']}, got {response.status_code}"
+            if self.response['Type'] == "JSON":
+                expected_content = self.response.get('ExpectedContent')
+                if expected_content and response.json() != expected_content:
+                    return "Offline: Unexpected JSON response"
+            elif self.response['Type'] == "TEXT":
+                expected_content = self.response.get('ExpectedContent')
+                if expected_content and response.text != expected_content:
+                    return "Offline: Unexpected text response"
+            return "Online"
         except Exception as e:
             return f"Offline: {e}"
 
-# Factory method to create services
 def create_service(service_data):
     if service_data['Type'] == 'MongoDB':
         return MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'])

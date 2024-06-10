@@ -81,7 +81,7 @@ class ServiceMonitorApp:
                 data['DB'] = service.db
             elif service.service_type == 'WebApp':
                 data['Healthcheck'] = service.healthcheck
-                data['Response'] = service.response_type
+                data['Response'] = service.response
             profile_data.append(data)
 
         self.profile_manager.save_profile(self.current_profile, profile_data)

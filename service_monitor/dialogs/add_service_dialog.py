@@ -35,8 +35,23 @@ class AddServiceDialog:
         self.healthcheck_label = ttk.Label(self.top, text="Healthcheck:")
         self.healthcheck_entry = ttk.Entry(self.top)
 
-        self.response_label = ttk.Label(self.top, text="Response:")
-        self.response_combo = ttk.Combobox(self.top, values=["JSON", "TEXT"])
+        self.response_frame = ttk.LabelFrame(self.top, text="Response")
+        self.response_frame.pack(fill="both", expand="yes", padx=10, pady=10)
+
+        self.response_type_label = ttk.Label(self.response_frame, text="Type:")
+        self.response_type_label.pack()
+        self.response_type_combo = ttk.Combobox(self.response_frame, values=["JSON", "TEXT"])
+        self.response_type_combo.pack()
+
+        self.expected_status_code_label = ttk.Label(self.response_frame, text="Expected Status Code:")
+        self.expected_status_code_label.pack()
+        self.expected_status_code_entry = ttk.Entry(self.response_frame)
+        self.expected_status_code_entry.pack()
+
+        self.expected_content_label = ttk.Label(self.response_frame, text="Expected Content:")
+        self.expected_content_label.pack()
+        self.expected_content_entry = ttk.Entry(self.response_frame)
+        self.expected_content_entry.pack()
 
         self.add_button = ttk.Button(self.top, text="Add", command=self.add_service)
         self.add_button.pack()
@@ -48,15 +63,13 @@ class AddServiceDialog:
             self.db_entry.pack()
             self.healthcheck_label.pack_forget()
             self.healthcheck_entry.pack_forget()
-            self.response_label.pack_forget()
-            self.response_combo.pack_forget()
+            self.response_frame.pack_forget()
         elif service_type == "WebApp":
             self.db_label.pack_forget()
             self.db_entry.pack_forget()
             self.healthcheck_label.pack()
             self.healthcheck_entry.pack()
-            self.response_label.pack()
-            self.response_combo.pack()
+            self.response_frame.pack(fill="both", expand="yes", padx=10, pady=10)
 
     def add_service(self):
         service_data = {
@@ -68,7 +81,11 @@ class AddServiceDialog:
             service_data['DB'] = self.db_entry.get()
         elif service_data['Type'] == "WebApp":
             service_data['Healthcheck'] = self.healthcheck_entry.get()
-            service_data['Response'] = self.response_combo.get()
+            service_data['Response'] = {
+                'Type': self.response_type_combo.get(),
+                'ExpectedStatusCode': int(self.expected_status_code_entry.get()) if self.expected_status_code_entry.get() else None,
+                'ExpectedContent': self.expected_content_entry.get()
+            }
 
         service = create_service(service_data)
         self.parent.services.append(service)
