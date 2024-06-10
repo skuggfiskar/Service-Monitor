@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from service import create_service
 from profiles.profile_manager import ProfileManager
-import threading
+from settings_manager import SettingsManager
 
 class ServiceMonitorApp:
     def __init__(self, root):
@@ -10,9 +10,13 @@ class ServiceMonitorApp:
         self.root.title("Service Monitor")
 
         self.profile_manager = ProfileManager()
+        self.settings_manager = SettingsManager()
         self.services = []
         self.current_profile = None
         self.dashboard = None
+
+        self.restore_window_position("main_window")
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.create_widgets()
 
@@ -36,6 +40,15 @@ class ServiceMonitorApp:
         self.save_button = ttk.Button(self.root, text="Save Profile", command=self.save_profile)
         self.save_button.pack()
 
+    def restore_window_position(self, window_name):
+        position = self.settings_manager.get_window_position(window_name)
+        if position:
+            self.root.geometry(position)
+
+    def save_window_position(self, window_name):
+        position = self.root.geometry()
+        self.settings_manager.set_window_position(window_name, position)
+
     def load_profile(self, event):
         profile_name = self.profile_combo.get()
         self.current_profile = profile_name
@@ -44,7 +57,7 @@ class ServiceMonitorApp:
         messagebox.showinfo("Profile Loaded", f"Loaded profile: {profile_name}")
 
     def add_service(self):
-        AddServiceDialog(self)
+        AddServiceDialog(self, self.settings_manager)
 
     def save_profile(self):
         if not self.current_profile:
@@ -74,16 +87,26 @@ class ServiceMonitorApp:
 
     def open_dashboard(self):
         if self.dashboard is None or not self.dashboard.root.winfo_exists():
-            self.dashboard = Dashboard(self.services)
+            self.dashboard = Dashboard(self.services, self.settings_manager)
             self.dashboard.show()
         else:
             self.dashboard.services = self.services
             self.dashboard.update_status()
 
+    def on_closing(self):
+        self.save_window_position("main_window")
+        if self.dashboard and self.dashboard.root.winfo_exists():
+            self.dashboard.save_window_position("dashboard")
+        self.root.destroy()
+
 class AddServiceDialog:
-    def __init__(self, parent):
+    def __init__(self, parent, settings_manager):
         self.top = tk.Toplevel(parent.root)
         self.top.title("Add Service")
+
+        self.settings_manager = settings_manager
+        self.restore_window_position("add_service_window")
+        self.top.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.parent = parent
 
@@ -148,13 +171,31 @@ class AddServiceDialog:
         self.parent.services.append(service)
         self.top.destroy()
 
+    def restore_window_position(self, window_name):
+        position = self.settings_manager.get_window_position(window_name)
+        if position:
+            x, y = position.split('+')[1], position.split('+')[2]
+            self.top.geometry(f"+{x}+{y}")
+
+    def save_window_position(self, window_name):
+        position = self.top.geometry()
+        self.settings_manager.set_window_position(window_name, position)
+
+    def on_closing(self):
+        self.save_window_position("add_service_window")
+        self.top.destroy()
+
 class Dashboard:
-    def __init__(self, services):
+    def __init__(self, services, settings_manager):
         self.services = services
+        self.settings_manager = settings_manager
         self.root = tk.Toplevel()
         self.root.title("Service Dashboard")
 
         self.service_status_labels = {}
+
+        self.restore_window_position("dashboard")
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.create_widgets()
         self.update_status()
@@ -189,6 +230,20 @@ class Dashboard:
 
     def show(self):
         self.root.mainloop()
+
+    def restore_window_position(self, window_name):
+        position = self.settings_manager.get_window_position(window_name)
+        if position:
+            x, y = position.split('+')[1], position.split('+')[2]
+            self.root.geometry(f"+{x}+{y}")
+
+    def save_window_position(self, window_name):
+        position = self.root.geometry()
+        self.settings_manager.set_window_position(window_name, position)
+
+    def on_closing(self):
+        self.save_window_position("dashboard")
+        self.root.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
