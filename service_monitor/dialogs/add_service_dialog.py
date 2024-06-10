@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from service import create_service
+from service import create_service, MongoDBService, WebAppService
 
 class AddServiceDialog:
     def __init__(self, parent, settings_manager):
@@ -53,6 +53,11 @@ class AddServiceDialog:
         self.expected_content_entry = ttk.Entry(self.response_frame)
         self.expected_content_entry.pack()
 
+        self.interval_label = ttk.Label(self.top, text="Refresh Interval (seconds):")
+        self.interval_label.pack()
+        self.interval_entry = ttk.Entry(self.top)
+        self.interval_entry.pack()
+
         self.add_button = ttk.Button(self.top, text="Add", command=self.add_service)
         self.add_button.pack()
 
@@ -72,6 +77,7 @@ class AddServiceDialog:
             self.response_frame.pack(fill="both", expand="yes", padx=10, pady=10)
 
     def add_service(self):
+        interval = int(self.interval_entry.get()) if self.interval_entry.get() else 10
         service_data = {
             'Name': self.name_entry.get(),
             'Type': self.type_combo.get(),
@@ -79,16 +85,18 @@ class AddServiceDialog:
         }
         if service_data['Type'] == "MongoDB":
             service_data['DB'] = self.db_entry.get()
+            service = MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'], interval)
         elif service_data['Type'] == "WebApp":
             service_data['Healthcheck'] = self.healthcheck_entry.get()
             service_data['Response'] = {
                 'Type': self.response_type_combo.get(),
                 'ExpectedStatusCode': int(self.expected_status_code_entry.get()) if self.expected_status_code_entry.get() else None,
-                'ExpectedContent': self.expected_content_entry.get()
+                'ExpectedContent': self.expected_content_entry.get() if self.expected_content_entry.get() else None
             }
+            service = WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval)
 
-        service = create_service(service_data)
         self.parent.services.append(service)
+        service.start()
         self.top.destroy()
 
     def restore_window_position(self, window_name):
