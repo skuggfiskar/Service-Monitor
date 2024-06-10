@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from service import create_service
 from profiles.profile_manager import ProfileManager
+import threading
 
 class ServiceMonitorApp:
     def __init__(self, root):
@@ -11,6 +12,7 @@ class ServiceMonitorApp:
         self.profile_manager = ProfileManager()
         self.services = []
         self.current_profile = None
+        self.dashboard = None
 
         self.create_widgets()
 
@@ -28,7 +30,7 @@ class ServiceMonitorApp:
         self.service_frame = ttk.Frame(self.root)
         self.service_frame.pack()
 
-        self.status_button = ttk.Button(self.root, text="Check Status", command=self.check_status)
+        self.status_button = ttk.Button(self.root, text="Check Status", command=self.open_dashboard)
         self.status_button.pack()
 
         self.save_button = ttk.Button(self.root, text="Save Profile", command=self.save_profile)
@@ -43,11 +45,6 @@ class ServiceMonitorApp:
 
     def add_service(self):
         AddServiceDialog(self)
-
-    def check_status(self):
-        for service in self.services:
-            status = service.check_status()
-            messagebox.showinfo("Service Status", f"{service.name}: {status}")
 
     def save_profile(self):
         if not self.current_profile:
@@ -74,6 +71,14 @@ class ServiceMonitorApp:
 
         self.profile_manager.save_profile(self.current_profile, profile_data)
         messagebox.showinfo("Profile Saved", f"Profile {self.current_profile} saved successfully!")
+
+    def open_dashboard(self):
+        if self.dashboard is None or not self.dashboard.root.winfo_exists():
+            self.dashboard = Dashboard(self.services)
+            self.dashboard.show()
+        else:
+            self.dashboard.services = self.services
+            self.dashboard.update_status()
 
 class AddServiceDialog:
     def __init__(self, parent):
@@ -142,6 +147,48 @@ class AddServiceDialog:
         service = create_service(service_data)
         self.parent.services.append(service)
         self.top.destroy()
+
+class Dashboard:
+    def __init__(self, services):
+        self.services = services
+        self.root = tk.Toplevel()
+        self.root.title("Service Dashboard")
+
+        self.service_status_labels = {}
+
+        self.create_widgets()
+        self.update_status()
+
+    def create_widgets(self):
+        for service in self.services:
+            self.add_service_widget(service)
+
+    def add_service_widget(self, service):
+        if service.name not in self.service_status_labels:
+            frame = ttk.Frame(self.root)
+            frame.pack(fill=tk.X, pady=5)
+
+            name_label = ttk.Label(frame, text=service.name, width=20)
+            name_label.pack(side=tk.LEFT, padx=5)
+
+            status_label = ttk.Label(frame, text="Checking...", width=20)
+            status_label.pack(side=tk.LEFT, padx=5)
+
+            self.service_status_labels[service.name] = status_label
+
+    def update_status(self):
+        for service in self.services:
+            if service.name not in self.service_status_labels:
+                self.add_service_widget(service)
+
+            status = service.check_status()
+            status_label = self.service_status_labels[service.name]
+            status_label.config(text=status, foreground="green" if status == "Online" else "red")
+
+        self.root.after(10000, self.update_status)
+
+    def show(self):
+        self.root.mainloop()
 
 if __name__ == "__main__":
     root = tk.Tk()
