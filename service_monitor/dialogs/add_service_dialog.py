@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from service import create_service, MongoDBService, WebAppService
+from service import create_service, MongoDBService, WebAppService, RedisService
 
 class AddServiceDialog:
     def __init__(self, parent, settings_manager):
@@ -20,7 +20,7 @@ class AddServiceDialog:
 
         self.type_label = ttk.Label(self.top, text="Type:")
         self.type_label.pack()
-        self.type_combo = ttk.Combobox(self.top, values=["MongoDB", "WebApp"])
+        self.type_combo = ttk.Combobox(self.top, values=["MongoDB", "WebApp", "Redis"])
         self.type_combo.pack()
         self.type_combo.bind("<<ComboboxSelected>>", self.update_fields)
 
@@ -53,6 +53,11 @@ class AddServiceDialog:
         self.expected_content_entry = ttk.Entry(self.response_frame)
         self.expected_content_entry.pack()
 
+        self.port_label = ttk.Label(self.top, text="Port:")
+        self.port_label.pack()
+        self.port_entry = ttk.Entry(self.top)
+        self.port_entry.pack()
+
         self.interval_label = ttk.Label(self.top, text="Refresh Interval (seconds):")
         self.interval_label.pack()
         self.interval_entry = ttk.Entry(self.top)
@@ -69,12 +74,24 @@ class AddServiceDialog:
             self.healthcheck_label.pack_forget()
             self.healthcheck_entry.pack_forget()
             self.response_frame.pack_forget()
+            self.port_label.pack_forget()
+            self.port_entry.pack_forget()
         elif service_type == "WebApp":
             self.db_label.pack_forget()
             self.db_entry.pack_forget()
             self.healthcheck_label.pack()
             self.healthcheck_entry.pack()
             self.response_frame.pack(fill="both", expand="yes", padx=10, pady=10)
+            self.port_label.pack_forget()
+            self.port_entry.pack_forget()
+        elif service_type == "Redis":
+            self.db_label.pack_forget()
+            self.db_entry.pack_forget()
+            self.healthcheck_label.pack_forget()
+            self.healthcheck_entry.pack_forget()
+            self.response_frame.pack_forget()
+            self.port_label.pack()
+            self.port_entry.pack()
 
     def add_service(self):
         interval = int(self.interval_entry.get()) if self.interval_entry.get() else 10
@@ -95,6 +112,9 @@ class AddServiceDialog:
                 'ExpectedContent': self.expected_content_entry.get() if self.expected_content_entry.get() else None
             }
             service = WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval)
+        elif service_data['Type'] == "Redis":
+            service_data['Port'] = int(self.port_entry.get())
+            service = RedisService(service_data['Name'], service_data['Host'], service_data['Port'], interval)
 
         self.parent.services.append(service)
         self.top.destroy()

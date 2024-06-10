@@ -83,10 +83,11 @@ class ServiceMonitorApp:
             elif service.service_type == 'WebApp':
                 data['Healthcheck'] = service.healthcheck
                 data['Response'] = service.response
+            elif service.service_type == 'Redis':
+                data['Port'] = service.port
             profile_data.append(data)
 
         self.profile_manager.save_profile(self.current_profile, profile_data)
-        # messagebox.showinfo("Profile Saved", f"Profile {self.current_profile} saved successfully!")
 
     def open_dashboard(self):
         if self.dashboard is None or not self.dashboard.root.winfo_exists():

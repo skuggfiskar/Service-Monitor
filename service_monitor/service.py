@@ -3,6 +3,7 @@ import time
 import requests
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
+import redis
 
 class Service:
     def __init__(self, name, service_type, host, interval=10):
@@ -67,11 +68,29 @@ class WebAppService(Service):
         except Exception as e:
             return f"Offline: {e}"
 
+class RedisService(Service):
+    def __init__(self, name, host, port, interval=10):
+        super().__init__(name, 'Redis', host, interval)
+        self.port = port
+        self.start()  # Start the service thread
+
+    def check_status(self):
+        try:
+            client = redis.Redis(host=self.host, port=self.port)
+            if client.ping():
+                return "Online"
+            else:
+                return "Offline"
+        except redis.ConnectionError:
+            return "Offline"
+
 def create_service(service_data):
     interval = service_data.get('Interval', 10)  # Default interval is 10 seconds
     if service_data['Type'] == 'MongoDB':
         return MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'], interval)
     elif service_data['Type'] == 'WebApp':
         return WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval)
+    elif service_data['Type'] == 'Redis':
+        return RedisService(service_data['Name'], service_data['Host'], service_data['Port'], interval)
     else:
         raise ValueError("Unsupported service type")
