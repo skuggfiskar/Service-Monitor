@@ -13,6 +13,8 @@ class Dashboard:
         self.restore_window_position("dashboard")
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        self.buttons = {}
+
         self.create_widgets()
         self.update_status()
 
@@ -34,8 +36,21 @@ class Dashboard:
             self.service_status_labels[service.name] = status_label
 
             if service.command_type:
-                command_button = ttk.Button(frame, text="Run" if service.command_type == "run" else "Start", command=lambda s=service: s.run_command())
+                button_id = service.name + "_button"
+                command_button = ttk.Button(frame, text="Run" if service.command_type == "run" else "Start", command=lambda s=service: self.run_command_button_click(s, button_id))
                 command_button.pack(side=tk.LEFT, padx=5)
+                self.buttons[button_id] = command_button
+
+    def run_command_button_click(self, service, button_id):
+        if service.command_type == "run":
+            button = self.buttons[button_id]
+            if button.cget("text") == "Stop":
+                service.stop_command()
+                button.configure(text="Run")
+                return
+            # button.configure(text="Running...", state="disabled")
+            button.configure(text="Stop")
+        service.run_command()
 
     def update_status(self):
         for service in self.services:

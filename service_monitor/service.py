@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 import redis
 import os
+import signal
 
 class Service:
     def __init__(self, name, service_type, host, interval=10, command=None, command_type=None):
@@ -18,12 +19,15 @@ class Service:
         self.status = "Unknown"
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
+        self._process = None  # Variable to store the process object
 
     def start(self):
         self._thread.start()
 
     def stop(self):
         self._stop_event.set()
+        if self._process:
+            self.stop_command()
 
     def _run(self):
         while not self._stop_event.is_set():
@@ -33,11 +37,24 @@ class Service:
     def run_command(self):
         if self.command:
             if self.command_type == "run":
-                threading.Thread(target=subprocess.Popen, args=(self.command,), kwargs={"shell": True}).start()
+                def target():
+                    self._process = subprocess.Popen(self.command, stdin=subprocess.PIPE, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP, shell=True)
+                threading.Thread(target=target, daemon=True).start()
             elif self.command_type == "start":
-                subprocess.call(self.command, shell=True)
+                self._process = subprocess.call(self.command, shell=True)
             else:
                 raise ValueError("Unsupported command type")
+    
+    def stop_command(self):
+        if self.command_type == "run":
+            if self._process and self._process.poll() is None:  # Check if the process is still running
+                print("Killing process...")
+                self._process.send_signal(signal.CTRL_BREAK_EVENT)
+                self._process.kill()
+        elif self.command_type == "start":
+            raise ValueError("Cannot stop a command that was started")
+        else:
+            raise ValueError("Unsupported command type")
 
     def check_status(self):
         raise NotImplementedError("Must be implemented by subclasses")
