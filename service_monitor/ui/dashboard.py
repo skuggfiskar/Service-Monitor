@@ -33,6 +33,10 @@ class Dashboard:
 
             self.service_status_labels[service.name] = status_label
 
+            if service.command_type:
+                command_button = ttk.Button(frame, text="Run" if service.command_type == "run" else "Start", command=lambda s=service: s.run_command())
+                command_button.pack(side=tk.LEFT, padx=5)
+
     def update_status(self):
         for service in self.services:
             if service.name not in self.service_status_labels:

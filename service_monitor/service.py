@@ -1,16 +1,20 @@
 import threading
+import subprocess
 import time
 import requests
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 import redis
+import os
 
 class Service:
-    def __init__(self, name, service_type, host, interval=10):
+    def __init__(self, name, service_type, host, interval=10, command=None, command_type=None):
         self.name = name
         self.service_type = service_type
         self.host = host
         self.interval = interval
+        self.command = command
+        self.command_type = command_type
         self.status = "Unknown"
         self._stop_event = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
@@ -25,13 +29,22 @@ class Service:
         while not self._stop_event.is_set():
             self.status = self.check_status()
             time.sleep(self.interval)
+    
+    def run_command(self):
+        if self.command:
+            if self.command_type == "run":
+                threading.Thread(target=subprocess.Popen, args=(self.command,), kwargs={"shell": True}).start()
+            elif self.command_type == "start":
+                subprocess.call(self.command, shell=True)
+            else:
+                raise ValueError("Unsupported command type")
 
     def check_status(self):
         raise NotImplementedError("Must be implemented by subclasses")
 
 class MongoDBService(Service):
-    def __init__(self, name, host, db, interval=10):
-        super().__init__(name, 'MongoDB', host, interval)
+    def __init__(self, name, host, db, interval=10, command=None, command_type=None):
+        super().__init__(name, 'MongoDB', host, interval, command, command_type)
         self.db = db
         self.start()  # Start the service thread
 
@@ -44,8 +57,8 @@ class MongoDBService(Service):
             return "Offline"
 
 class WebAppService(Service):
-    def __init__(self, name, host, healthcheck, response, interval=10):
-        super().__init__(name, 'WebApp', host, interval)
+    def __init__(self, name, host, healthcheck, response, interval=10, command=None, command_type=None):
+        super().__init__(name, 'WebApp', host, interval, command, command_type)
         self.healthcheck = healthcheck
         self.response = response
         self.start()  # Start the service thread
@@ -69,8 +82,8 @@ class WebAppService(Service):
             return f"Offline: {e}"
 
 class RedisService(Service):
-    def __init__(self, name, host, port, interval=10):
-        super().__init__(name, 'Redis', host, interval)
+    def __init__(self, name, host, port, interval=10, command=None, command_type=None):
+        super().__init__(name, 'Redis', host, interval, command, command_type)
         self.port = port
         self.start()  # Start the service thread
 
@@ -86,11 +99,13 @@ class RedisService(Service):
 
 def create_service(service_data):
     interval = service_data.get('Interval', 10)  # Default interval is 10 seconds
+    command = service_data.get('Command', None)
+    command_type = service_data.get('CommandType', None)
     if service_data['Type'] == 'MongoDB':
-        return MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'], interval)
+        return MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'], interval, command, command_type)
     elif service_data['Type'] == 'WebApp':
-        return WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval)
+        return WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval, command, command_type)
     elif service_data['Type'] == 'Redis':
-        return RedisService(service_data['Name'], service_data['Host'], service_data['Port'], interval)
+        return RedisService(service_data['Name'], service_data['Host'], service_data['Port'], interval, command, command_type)
     else:
         raise ValueError("Unsupported service type")

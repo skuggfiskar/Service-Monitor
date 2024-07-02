@@ -76,7 +76,9 @@ class ServiceMonitorApp:
                 'Name': service.name,
                 'Type': service.service_type,
                 'Host': service.host,
-                'Interval': service.interval
+                'Interval': service.interval,
+                'Command': service.command,
+                'CommandType': service.command_type,
             }
             if service.service_type == 'MongoDB':
                 data['DB'] = service.db

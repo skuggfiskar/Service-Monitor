@@ -63,6 +63,16 @@ class AddServiceDialog:
         self.interval_entry = ttk.Entry(self.top)
         self.interval_entry.pack()
 
+        self.command_label = ttk.Label(self.top, text="Command:")
+        self.command_label.pack()
+        self.command_entry = ttk.Entry(self.top)
+        self.command_entry.pack()
+
+        self.command_type_label = ttk.Label(self.top, text="Command Type:")
+        self.command_type_label.pack()
+        self.command_type_combo = ttk.Combobox(self.top, values=["start", "run"])
+        self.command_type_combo.pack()
+
         self.add_button = ttk.Button(self.top, text="Add", command=self.add_service)
         self.add_button.pack()
 
@@ -99,11 +109,14 @@ class AddServiceDialog:
             'Name': self.name_entry.get(),
             'Type': self.type_combo.get(),
             'Host': self.host_entry.get(),
-            'Interval': interval
+            'Interval': interval,
+            'Command': self.command_entry.get(),
+            'CommandType': self.command_type_combo.get(),
         }
+
         if service_data['Type'] == "MongoDB":
             service_data['DB'] = self.db_entry.get()
-            service = MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'], interval)
+            service = MongoDBService(service_data['Name'], service_data['Host'], service_data['DB'], interval, service_data['Command'], service_data['CommandType'])
         elif service_data['Type'] == "WebApp":
             service_data['Healthcheck'] = self.healthcheck_entry.get()
             service_data['Response'] = {
@@ -111,10 +124,10 @@ class AddServiceDialog:
                 'ExpectedStatusCode': int(self.expected_status_code_entry.get()) if self.expected_status_code_entry.get() else None,
                 'ExpectedContent': self.expected_content_entry.get() if self.expected_content_entry.get() else None
             }
-            service = WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval)
+            service = WebAppService(service_data['Name'], service_data['Host'], service_data['Healthcheck'], service_data['Response'], interval, service_data['Command'], service_data['CommandType'])
         elif service_data['Type'] == "Redis":
             service_data['Port'] = int(self.port_entry.get())
-            service = RedisService(service_data['Name'], service_data['Host'], service_data['Port'], interval)
+            service = RedisService(service_data['Name'], service_data['Host'], service_data['Port'], interval, service_data['Command'], service_data['CommandType'])
 
         self.parent.services.append(service)
         self.top.destroy()
